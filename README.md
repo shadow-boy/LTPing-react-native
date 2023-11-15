@@ -11,11 +11,41 @@ npm install react-native-ltping
 ## Usage
 
 ```js
-import { multiply } from 'react-native-ltping';
+import { batchPing,onPingDidCompletedListener ,onPingDidUpdateListener} from 'react-native-ltping';
 
 // ...
 
-const result = await multiply(3, 7);
+ componentDidMount(): void {
+
+
+
+    batchPing(this.hostList).then(res => {
+      console.log("batchPing.res--->", res);
+
+    })
+
+    onPingDidCompletedListener(() => {
+      console.log("ping.onPingDidCompletedListener--->");
+
+    })
+
+    onPingDidUpdateListener((state) => {
+      console.log(`ping.onPingDidUpdateListener--->\n`);
+      state.forEach((value, key) => {
+        console.log(`key--->${key},value--->${value}`);
+        this.pingResultomMap.set(key, value)
+        this.setState({
+          extraData: !this.state.extraData
+        })
+        // this.listRef.current?.forceUpdate
+
+
+      })
+
+    })
+  }
+
+
 ```
 
 ## Contributing
