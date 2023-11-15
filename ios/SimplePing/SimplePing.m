@@ -578,7 +578,7 @@ static void HostResolveCallback(CFHostRef theHost, CFHostInfoType typeInfo, cons
         
         CFHostSetClient(self->_host, HostResolveCallback, &context);
         
-        CFHostScheduleWithRunLoop(self->_host, CFRunLoopGetCurrent(), kCFRunLoopDefaultMode);
+        CFHostScheduleWithRunLoop(self->_host, CFRunLoopGetMain(), kCFRunLoopDefaultMode);
         
 //        NSLog(@">CFHostStartInfoResolution");
         success = CFHostStartInfoResolution(self->_host, kCFHostAddresses, &streamError);

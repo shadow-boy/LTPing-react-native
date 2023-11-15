@@ -108,6 +108,8 @@ open class LTPingOperation : NSObject, SimplePingDelegate {
     }
     
     open func simplePing(_ pinger: SimplePing!, didReceiveUnexpectedPacket packet: Data!) {
+        print("--->simplePing.didReceiveUnexpectedPacket")
+//        stop()
         
     }
 }
