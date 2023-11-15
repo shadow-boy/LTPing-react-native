@@ -11,7 +11,7 @@ public struct LTHostLatency {
 public let kPingDidUpdate = "kPingDidUpdate"
 public let kPingDidComplete = "kPingDidComplete"
 
-private let kPingTimeout: TimeInterval = 7
+private let kPingTimeout: TimeInterval = 5
 
 open class LTPingOperation : NSObject, SimplePingDelegate {
     
@@ -19,7 +19,6 @@ open class LTPingOperation : NSObject, SimplePingDelegate {
     open var ping: SimplePing?
     open var completed = false
     
-    fileprivate var timeoutTimer: Timer?
     fileprivate var startTimeInterval: TimeInterval?
     
     init(hostname: String) {
@@ -35,21 +34,21 @@ open class LTPingOperation : NSObject, SimplePingDelegate {
         ping = SimplePing(hostName: hostLatency.hostname)
         if let p = ping {
             p.delegate = self
-            timeoutTimer = Timer.scheduledTimer(
-                timeInterval: kPingTimeout,
-                target: self,
-                selector: #selector(LTPingOperation.stop),
-                userInfo: nil,
-                repeats: false)
+            
+            DispatchQueue.main.asyncAfter(deadline: .now() + kPingTimeout) {[weak self] in
+                self?.stop()
+            }
             p.start()
+
         }
     }
     
     @objc open func stop() {
+        if completed{
+            return
+        }
         ping?.stop()
         ping = nil
-        timeoutTimer?.invalidate()
-        timeoutTimer = nil
         startTimeInterval = nil
         completed = true
         
@@ -108,7 +107,7 @@ open class LTPingOperation : NSObject, SimplePingDelegate {
     }
     
     open func simplePing(_ pinger: SimplePing!, didReceiveUnexpectedPacket packet: Data!) {
-        print("--->simplePing.didReceiveUnexpectedPacket")
+        print("--->simplePing.didReceiveUnexpectedPacket,hostip--->",self.hostLatency.hostname)
 //        stop()
         
     }

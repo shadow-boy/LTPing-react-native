@@ -18,16 +18,12 @@ export default class App extends React.Component<{}, State>{
     this.state = {
       extraData: false
     };
-    this.hostList = ['136.244.95.54', '78.141.234.137', '149.28.77.119', '136.244.92.168', '95.179.210.148', '207.148.126.182', '217.69.3.32', '149.28.254.44']
-    // this.hostList = ['136.244.95.54', '78.141.234.137']
+    // this.hostList = ['136.244.95.54', '78.141.234.137', '149.28.77.119', '136.244.92.168', '95.179.210.148', '207.148.126.182', '217.69.3.32', '149.28.254.44']
+    // this.hostList = ['136.244.95.54', '217.69.3.32']
 
   };
   componentDidMount(): void {
 
-    batchPing(this.hostList).then(res => {
-      console.log("batchPing.res--->", res);
-
-    })
 
     onPingDidCompletedListener(() => {
       console.log("ping.onPingDidCompletedListener--->");
@@ -46,6 +42,12 @@ export default class App extends React.Component<{}, State>{
 
 
       })
+
+    })
+
+
+    batchPing(this.hostList).then(res => {
+      console.log("batchPing.res--->", res);
 
     })
   }
