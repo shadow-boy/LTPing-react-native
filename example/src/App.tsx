@@ -24,8 +24,6 @@ export default class App extends React.Component<{}, State>{
   };
   componentDidMount(): void {
 
-
-
     batchPing(this.hostList).then(res => {
       console.log("batchPing.res--->", res);
 
