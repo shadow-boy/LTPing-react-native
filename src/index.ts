@@ -34,9 +34,16 @@ export async function batchPing(hostList: Array<string>): Promise<Map<string, nu
 
 /**
  * 重启ping，不带缓存的ping
+ * iOS在 [DispatchQueue.main.async {}执行 所以会导致主线程锁住，UI线程无法接收事件响应，导致点不动]
  */
 export function restartAppPing() {
   Ltping.restartAppPing()
+}
+/**
+ * 清空之前的ping结果
+ */
+export function cleanPing(){
+  Ltping.clean()
 }
 
 
@@ -78,6 +85,17 @@ export const onPingDidUpdateListener = (callback: (state: Map<string, number>) =
  */
 export const onPingDidCompletedListener = (callback: () => void) => {
   return pingStateListener.addListener(PingEventCons.pingDidComplete, callback);
+
+}
+
+/**
+ * 同步查询延迟
+ * @param hostname 
+ * @returns 
+ */
+export const getSyncLatencyForHost = (hostname: string) => {
+  let latency = Ltping.getSyncLatencyForHost(hostname) as string
+  return parseInt(latency)
 
 }
 

@@ -1,22 +1,31 @@
 import * as React from 'react';
 
-import { View, Text, FlatList, TouchableOpacity, SafeAreaView } from 'react-native';
-import { batchPing, restartAppPing, onPingDidCompletedListener, onPingDidUpdateListener } from 'react-native-ltping';
+import { View, Text, FlatList, TouchableOpacity, SafeAreaView, type EmitterSubscription } from 'react-native';
+import { batchPing, restartAppPing, onPingDidCompletedListener, onPingDidUpdateListener, getSyncLatencyForHost, cleanPing } from 'react-native-ltping';
 
 
 interface State {
   extraData: boolean
+  currentIndex: number | null,
+  hostList: Array<string>
+
 }
 
 export default class App extends React.Component<{}, State>{
-  hostList = ['136.244.95.54', '78.141.234.137', '149.28.77.119', '136.244.92.168', '45.76.167.201', '45.77.226.32', '95.179.210.148', '207.148.126.182', '217.69.3.32', '149.28.254.44', '78.141.222.58', '45.77.98.222', '108.61.217.149', '45.32.230.6', '144.202.22.127', '139.180.216.34', '45.77.25.146', '108.61.166.188', '140.82.24.140', '80.240.19.231', '45.76.81.58', '216.128.131.65', '136.244.105.232', '45.32.119.194', '45.77.73.146', '45.32.78.62', '217.69.9.129', '95.179.247.47', '95.179.230.211', '45.65.9.82', '45.65.9.139', '205.185.116.48', '95.174.71.151', '88.210.37.3', '172.104.212.180', '172.233.198.243', '139.162.73.91', '172.233.67.60', '5.183.102.23', '176.58.112.221', '5.8.33.52', '172.105.244.12', '172.233.255.214', '172.233.253.133', '172.232.43.13', '38.111.114.207', '38.111.114.91', '38.111.114.66', '172.105.103.129', '172.105.189.92', '194.195.248.95', '194.195.248.218', '88.119.169.168', '172.233.32.86', '170.187.237.40', '45.79.127.130', '46.17.45.96', '213.183.53.196', '213.183.53.247', '5.188.6.46', '95.85.72.220', '5.188.6.219', '95.174.68.170', '172.232.194.97', '172.232.158.37', '172.233.24.245', '172.233.24.244', '172.233.24.243', '172.233.24.242']
   pingResultomMap = new Map()
   listRef = React.createRef<FlatList>()
+
+  sub1: any = null
+  sub2: any = null
+
+
   constructor(props: any) {
     super(props)
 
     this.state = {
-      extraData: false
+      extraData: false,
+      currentIndex: null,
+      hostList: ["95.179.254.53", "95.179.230.211", "45.32.78.62", "95.179.166.91", "149.28.49.39", "78.141.234.137", "217.69.9.129", "207.148.78.149", "95.179.210.148", "216.128.131.65", "95.179.138.218", "45.77.152.123", "149.28.77.119", "45.32.230.6", "144.202.22.127", "149.28.134.97", "45.32.47.44", "108.61.166.188", "207.246.64.166", "80.240.29.4", "136.244.92.168", "149.28.254.44", "78.141.222.58", "207.148.126.182", "140.82.24.140", "108.61.217.149", "217.69.3.32", "136.244.95.54", "45.77.226.32", "92.223.30.55", "92.38.149.76", "205.185.119.188", "45.65.9.20", "45.79.22.46", "45.56.73.9", "139.144.21.181", "139.144.21.11", "143.42.120.169", "143.42.120.205", "67.205.146.238", "167.71.182.205", "143.110.192.42", "164.92.96.64", "109.166.37.94", "5.180.77.104", "172.105.224.94", "172.105.224.126", "172.233.93.114", "139.144.120.76", "45.118.134.147", "45.118.134.74", "45.118.134.64", "192.53.174.30", "146.190.94.149", "139.144.151.161", "139.144.151.162", "213.168.250.17", "176.58.120.251", "178.79.176.31", "5.8.33.52", "46.101.8.153", "172.104.144.9", "192.46.235.237", "139.162.152.119", "134.122.74.139", "172.233.255.222", "172.232.54.177", "172.232.63.136", "172.105.22.247", "172.105.6.131", "172.105.22.74", "172.105.103.11", "138.197.130.14", "172.105.254.79", "172.105.191.245", "170.64.182.118", "172.233.32.96", "134.209.81.80", "170.187.235.61", "170.187.235.137", "170.187.235.31", "192.46.214.249", "45.79.127.155", "159.65.156.153", "45.136.244.46", "45.140.169.198", "5.188.6.46", "95.85.72.219", "95.85.72.215", "95.85.72.218", "95.174.68.172", "95.174.68.220", "172.232.194.240", "172.232.194.241", "172.232.194.238", "172.232.146.8", "172.232.146.9", "172.232.147.142", "172.233.24.246", "172.233.24.241", "172.233.24.240", "172.233.24.238"]
     };
     // this.hostList = ['136.244.95.54', '78.141.234.137', '149.28.77.119', '136.244.92.168', '95.179.210.148', '207.148.126.182', '217.69.3.32', '149.28.254.44']
     // this.hostList = ['136.244.95.54', '217.69.3.32']
@@ -25,31 +34,30 @@ export default class App extends React.Component<{}, State>{
   componentDidMount(): void {
 
 
-    onPingDidCompletedListener(() => {
+    this.sub1 = onPingDidCompletedListener(() => {
       console.log("ping.onPingDidCompletedListener--->");
 
     })
 
-    onPingDidUpdateListener((state) => {
-      console.log(`ping.onPingDidUpdateListener--->\n`);
+    this.sub2 = onPingDidUpdateListener((state) => {
+      console.log(`ping.onPingDidUpdateListener--->`);
       state.forEach((value, key) => {
         console.log(`key--->${key},value--->${value}`);
-        this.pingResultomMap.set(key, value)
-        this.setState({
-          extraData: !this.state.extraData
-        })
-        // this.listRef.current?.forceUpdate
+        // this.pingResultomMap.set(key, value)
 
+      })
 
+      this.setState({
+        extraData: !this.state.extraData
       })
 
     })
 
 
-    batchPing(this.hostList).then(res => {
-      console.log("batchPing.res--->", res);
+    // batchPing(this.hostList).then(res => {
+    //   console.log("batchPing.res--->", res);
 
-    })
+    // })
   }
 
   render(): React.ReactNode {
@@ -57,7 +65,7 @@ export default class App extends React.Component<{}, State>{
       <SafeAreaView style={{ flex: 1 }}>
         <FlatList
           ref={this.listRef}
-          style={{ flex: 1 }} data={this.hostList}
+          style={{ flex: 1 }} data={this.state.hostList}
           extraData={this.state.extraData}
           ItemSeparatorComponent={() => {
             return <View style={{ backgroundColor: "transparent", height: 15 }}></View>
@@ -65,14 +73,51 @@ export default class App extends React.Component<{}, State>{
           renderItem={(info) => {
             return (
               <TouchableOpacity onPress={() => {
-                restartAppPing()
+                this.setState({
+                  currentIndex: info.index
+                })
               }}>
-                <Text style={{ height: 50, textAlign: 'center', color: "blue", backgroundColor: "yellow", verticalAlign: "middle" }}>{info.item} ping==={this.pingResultomMap.get(info.item)}ms</Text>
+                <Text style={{
+                  height: 50,
+                  textAlign: 'center',
+                  color: "blue",
+                  backgroundColor: info.index == this.state.currentIndex ? "green" : "yellow",
+                  verticalAlign: "middle"
+                }}>{info.item}---{'>'}{this.getPing(info.item)}ms</Text>
               </TouchableOpacity>
             )
           }}></FlatList>
+
+        <TouchableOpacity
+          style={{
+            width: 60, height: 60,
+            borderRadius: 30,
+            backgroundColor: "blue",
+            justifyContent: 'center',
+            alignItems: 'center',
+            position: "absolute",
+            left: 20,
+            bottom: 20,
+          }}
+          onPress={() => {
+            restartAppPing()
+            // cleanPing()
+            // this.setState({
+            //   hostList: [...this.state.hostList]
+            // })
+
+          }}>
+          <Text style={{ color: "red" }}>restartPing</Text>
+        </TouchableOpacity>
       </SafeAreaView>
     )
+  }
+  getPing(ip: string) {
+    let ping = getSyncLatencyForHost(ip)
+    if (ping > 0) {
+      return ping
+    }
+    return null
   }
 
 }

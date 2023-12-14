@@ -11,7 +11,7 @@ public struct LTHostLatency {
 public let kPingDidUpdate = "kPingDidUpdate"
 public let kPingDidComplete = "kPingDidComplete"
 
-private let kPingTimeout: TimeInterval = 5
+private let kPingTimeout: TimeInterval = 7
 
 open class LTPingOperation : NSObject, SimplePingDelegate {
     
@@ -19,6 +19,7 @@ open class LTPingOperation : NSObject, SimplePingDelegate {
     open var ping: SimplePing?
     open var completed = false
     
+    fileprivate var timeoutTimer: Timer?
     fileprivate var startTimeInterval: TimeInterval?
     
     init(hostname: String) {
@@ -34,21 +35,22 @@ open class LTPingOperation : NSObject, SimplePingDelegate {
         ping = SimplePing(hostName: hostLatency.hostname)
         if let p = ping {
             p.delegate = self
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + kPingTimeout) {[weak self] in
-                self?.stop()
-            }
+            timeoutTimer = Timer.scheduledTimer(
+                timeInterval: kPingTimeout,
+                target: self,
+                selector: #selector(LTPingOperation.stop),
+                userInfo: nil,
+                repeats: false)
             p.start()
 
         }
     }
     
     @objc open func stop() {
-        if completed{
-            return
-        }
         ping?.stop()
         ping = nil
+        timeoutTimer?.invalidate()
+        timeoutTimer = nil
         startTimeInterval = nil
         completed = true
         
@@ -107,9 +109,7 @@ open class LTPingOperation : NSObject, SimplePingDelegate {
     }
     
     open func simplePing(_ pinger: SimplePing!, didReceiveUnexpectedPacket packet: Data!) {
-        print("--->simplePing.didReceiveUnexpectedPacket,hostip--->",self.hostLatency.hostname)
-//        stop()
-        
+
     }
 }
 
@@ -119,7 +119,12 @@ open class LTPingOperation : NSObject, SimplePingDelegate {
 open class LTPingQueue : RCTEventEmitter, SimplePingDelegate {
     
     open override class func requiresMainQueueSetup() -> Bool {
+//        return true
         return false
+    }
+    open override var methodQueue: DispatchQueue!{
+//        return DispatchQueue.main
+        return DispatchQueue(label: "LTPingQueue.method.queue",attributes: .concurrent)
     }
     open  override func supportedEvents() -> [String]! {
         return [ "singlePingDidUpdate","batchPingDidComplete"]
@@ -143,6 +148,7 @@ open class LTPingQueue : RCTEventEmitter, SimplePingDelegate {
         NotificationCenter.default.removeObserver(self, name: NSNotification.Name(rawValue: kPingDidUpdate), object: nil)
     }
     
+    @objc
     func latencyForHostname(_ hostname: String) -> Int {
         if let pinger = (operations.filter { $0.hostLatency.hostname == hostname }.first) {
             return pinger.hostLatency.latency
@@ -152,6 +158,11 @@ open class LTPingQueue : RCTEventEmitter, SimplePingDelegate {
         pingOperation.start()
         operations.append(pingOperation)
         return -1
+    }
+    
+    @objc
+    func getSyncLatencyForHost(_ host:String)->String{
+        return "\(self.latencyForHostname(host))"
     }
     
     
@@ -169,12 +180,16 @@ open class LTPingQueue : RCTEventEmitter, SimplePingDelegate {
     
     @objc
     open func restartAppPing() {
-        operations.forEach {
-            $0.hostLatency.latency = -1
-            $0.start()
+        DispatchQueue.main.async {[weak self] in
+            self?.operations.forEach {
+                $0.hostLatency.latency = -1
+                $0.start()
+            }
+            
         }
+
     }
-    
+    @objc
     open func clean() {
         operations.forEach { $0.stop() }
         operations.removeAll(keepingCapacity: false)
